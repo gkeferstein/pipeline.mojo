@@ -1,0 +1,29 @@
+# Projekt-spezifische Cursor Rules
+
+## Projekt-Kontext
+Dieses Projekt läuft auf dem MOJO Dev-Server.
+
+## Port-Konfiguration
+- Frontend-Port: Siehe `docs/PORT.md` (OBLIGATORISCH!)
+- Backend-Port: Siehe `docs/PORT.md` (falls vorhanden)
+- **WICHTIG:** Port MUSS in `docs/PORT.md` dokumentiert sein!
+
+## Code-Standards
+- Verwende TypeScript/JavaScript ES6+
+- Folge den bestehenden Code-Konventionen
+- Dokumentiere wichtige Funktionen
+
+## Deployment
+- Projekt wird automatisch über CI/CD deployed
+- Port wird automatisch in nginx registriert
+- **WICHTIG:** Deploy-Server wird über GitHub Secrets konfiguriert (`DEPLOY_SERVER`)
+- **NIEMALS** Server-IPs hardcoden!
+- Siehe `.github/workflows/ci-cd.yml`
+
+## GitHub Secrets (ERFORDERLICH)
+- `DEPLOY_SERVER` - Server-IP oder Hostname (MUSS gesetzt sein!)
+- `SSH_PRIVATE_KEY` - SSH-Key für Server-Zugriff (MUSS gesetzt sein!)
+
+
+
+

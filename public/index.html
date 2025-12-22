@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funnel Pipeline - pipeline.mojo</title>
+    <link rel="stylesheet" href="design-system.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Funnel Pipeline</h1>
+            <div class="status">
+                <span id="lastUpdate">Lade...</span>
+            </div>
+        </header>
+        
+        <div class="funnel-container">
+            <div class="funnel-column" data-stage="1">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Lead</h2>
+                        <span class="count" id="count-1">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-1">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-1"></div>
+            </div>
+            
+            <div class="funnel-column" data-stage="2">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Meeting vereinbart</h2>
+                        <span class="count" id="count-2">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-2">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-2"></div>
+            </div>
+            
+            <div class="funnel-column" data-stage="3">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Follow Up</h2>
+                        <span class="count" id="count-3">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-3">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-3"></div>
+            </div>
+            
+            <div class="funnel-column" data-stage="4">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Kaufentscheidung</h2>
+                        <span class="count" id="count-4">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-4">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-4"></div>
+            </div>
+            
+            <div class="funnel-column" data-stage="5">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Kauf</h2>
+                        <span class="count" id="count-5">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-5">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-5"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
+

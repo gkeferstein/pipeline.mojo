@@ -1,0 +1,20 @@
+{
+  "name": "pipeline.mojo",
+  "version": "1.0.0",
+  "description": "pipeline.mojo - MOJO Dev Server Projekt",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": ["mojo", "dev-server"],
+  "author": "MOJO Institut",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.2.2",
+    "cors": "^2.8.5"
+  }
+}
