@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Funnel Pipeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="design-system.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--mojo-font-family, 'Montserrat', system-ui, sans-serif);
+            background: var(--mojo-bg-white, #ffffff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: var(--mojo-bg-white, #ffffff);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            color: var(--mojo-color-primary, #66dd99);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .error-message {
+            background: var(--mojo-color-error-bg, rgba(220, 38, 38, 0.08));
+            border: 1px solid var(--mojo-color-error-border, rgba(220, 38, 38, 0.2));
+            color: var(--mojo-color-error, #dc2626);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: var(--mojo-font-family, 'Montserrat', sans-serif);
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--mojo-color-primary, #66dd99);
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 12px;
+            background: var(--mojo-color-primary, #66dd99);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: var(--mojo-font-family, 'Montserrat', sans-serif);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-button:hover {
+            background: var(--mojo-color-primary-dark, #44cc88);
+        }
+
+        .submit-button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Funnel Pipeline</h1>
+            <p>Bitte geben Sie den PIN-Code ein</p>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Ungültiger PIN-Code. Bitte versuchen Sie es erneut.
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="pin">PIN-Code</label>
+                <input 
+                    type="password" 
+                    id="pin" 
+                    name="pin" 
+                    placeholder="PIN eingeben" 
+                    required 
+                    autofocus
+                    maxlength="10"
+                >
+            </div>
+            <button type="submit" class="submit-button">Anmelden</button>
+        </form>
+    </div>
+
+    <script>
+        // Prüfe URL-Parameter auf Fehler
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === 'invalid') {
+            document.getElementById('errorMessage').classList.add('show');
+        }
+
+        // Formular-Handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const pin = document.getElementById('pin').value;
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.classList.remove('show');
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ pin })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Erfolgreich eingeloggt - weiterleiten
+                    window.location.href = '/';
+                } else {
+                    // Fehler anzeigen
+                    errorMessage.classList.add('show');
+                    document.getElementById('pin').value = '';
+                    document.getElementById('pin').focus();
+                }
+            } catch (error) {
+                console.error('Login-Fehler:', error);
+                errorMessage.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>
+
+

@@ -4,13 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Funnel Pipeline - pipeline.mojo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="design-system.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Funnel Pipeline</h1>
+            <div>
+                <h1>Funnel Pipeline</h1>
+                <div class="total-expected-value" id="total-expected-value">Gesamterwarteter Wert: 0€</div>
+            </div>
             <div class="status">
                 <span id="lastUpdate">Lade...</span>
             </div>
@@ -70,6 +76,17 @@
                     <div class="expected-value" id="expected-value-5">Erwarteter Wert: 0€</div>
                 </div>
                 <div class="cards-container" id="stage-5"></div>
+            </div>
+            
+            <div class="funnel-column" data-stage="6">
+                <div class="column-header">
+                    <div class="header-row">
+                        <h2>Absage</h2>
+                        <span class="count" id="count-6">0</span>
+                    </div>
+                    <div class="expected-value" id="expected-value-6">Erwarteter Wert: 0€</div>
+                </div>
+                <div class="cards-container" id="stage-6"></div>
             </div>
         </div>
     </div>

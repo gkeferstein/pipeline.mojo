@@ -1,0 +1,46 @@
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Datenbank-Dateien (werden in Volumes gemountet)
+*.db
+*.db-shm
+*.db-wal
+
+# Backups (werden in Volumes gemountet)
+backups/
+
+# Logs (werden in Volumes gemountet)
+logs/
+
+# Environment files (werden als bind mount gemountet)
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PM2 (nicht mehr benötigt)
+ecosystem.config.cjs
+
+# Dokumentation
+README.md
+docs/
+
+# CI/CD
+.github/
+
+

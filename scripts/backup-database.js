@@ -10,11 +10,18 @@ import { pipeline } from 'stream/promises';
 import Database from 'better-sqlite3';
 import { createReadStream, createWriteStream } from 'fs';
 
+import dotenv from 'dotenv';
+
+// Lade Umgebungsvariablen
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_DIR = join(__dirname, '..');
-const BACKUP_DIR = join(PROJECT_DIR, 'backups');
-const DB_FILE = join(PROJECT_DIR, 'pipeline.db');
+
+// Verwende Environment-Variablen oder Fallback zu lokalen Pfaden
+const DB_FILE = process.env.DATABASE_PATH || join(PROJECT_DIR, 'pipeline.db');
+const BACKUP_DIR = process.env.BACKUP_DIR || join(PROJECT_DIR, 'backups');
 const HEARTBEAT_URL = 'https://uptime.betterstack.com/api/v1/heartbeat/ggS7szqbF5aWxoeMyMLyxj2U';
 const RETENTION_DAYS = 30;
 

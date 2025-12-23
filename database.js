@@ -1,11 +1,16 @@
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import dotenv from 'dotenv';
+
+// Lade Umgebungsvariablen
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const dbPath = join(__dirname, 'pipeline.db');
+// Verwende DATABASE_PATH aus Environment oder Fallback
+const dbPath = process.env.DATABASE_PATH || join(__dirname, 'pipeline.db');
 const db = new Database(dbPath);
 
 // Aktiviere Foreign Key Constraints
@@ -23,8 +28,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS customers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
-    firstname TEXT NOT NULL,
-    lastname TEXT NOT NULL,
+    firstname TEXT,
+    lastname TEXT,
     current_stage INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

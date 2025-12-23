@@ -1,0 +1,94 @@
+services:
+  pipeline-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mojo-pipeline-service
+    restart: unless-stopped
+    expose:
+      - "46006"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=46006
+      - DATABASE_PATH=/app/data/pipeline.db
+    volumes:
+      - pipeline-data:/app/data
+      - pipeline-backups:/app/backups
+      - pipeline-logs:/app/logs
+      # Mount .env für einfaches Bearbeiten
+      - ./.env:/app/.env:ro
+    # User wird im Dockerfile gesetzt
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:46006/health', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - mojo-pipeline-network
+    labels:
+      # Traefik aktivieren
+      - "traefik.enable=true"
+      - "traefik.docker.network=mojo-pipeline-network"
+      
+      # Health Check Router (höchste Priorität)
+      - "traefik.http.routers.pipeline-health.rule=Host(`dev.pipeline.mojo-institut.de`) && PathPrefix(`/health`)"
+      - "traefik.http.routers.pipeline-health.entrypoints=websecure"
+      - "traefik.http.routers.pipeline-health.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pipeline-health.service=pipeline-service"
+      - "traefik.http.routers.pipeline-health.priority=25"
+      - "traefik.http.routers.pipeline-health.middlewares=security-headers@file"
+      
+      # API Router
+      - "traefik.http.routers.pipeline-api.rule=Host(`dev.pipeline.mojo-institut.de`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.pipeline-api.entrypoints=websecure"
+      - "traefik.http.routers.pipeline-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pipeline-api.service=pipeline-service"
+      - "traefik.http.routers.pipeline-api.priority=25"
+      - "traefik.http.routers.pipeline-api.middlewares=security-headers@file,cors@file"
+      
+      # Webhook Router
+      - "traefik.http.routers.pipeline-webhook.rule=Host(`dev.pipeline.mojo-institut.de`) && PathPrefix(`/webhook`)"
+      - "traefik.http.routers.pipeline-webhook.entrypoints=websecure"
+      - "traefik.http.routers.pipeline-webhook.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pipeline-webhook.service=pipeline-service"
+      - "traefik.http.routers.pipeline-webhook.priority=25"
+      - "traefik.http.routers.pipeline-webhook.middlewares=security-headers@file,cors@file"
+      
+      # Frontend Router (catch-all, niedrigste Priorität)
+      - "traefik.http.routers.pipeline-frontend.rule=Host(`dev.pipeline.mojo-institut.de`)"
+      - "traefik.http.routers.pipeline-frontend.entrypoints=websecure"
+      - "traefik.http.routers.pipeline-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pipeline-frontend.service=pipeline-service"
+      - "traefik.http.routers.pipeline-frontend.priority=1"
+      - "traefik.http.routers.pipeline-frontend.middlewares=security-headers@file"
+      
+      # Service Definition
+      - "traefik.http.services.pipeline-service.loadbalancer.server.port=46006"
+      - "traefik.http.services.pipeline-service.loadbalancer.passhostheader=true"
+
+volumes:
+  pipeline-data:
+    name: pipeline-data
+    external: false
+  pipeline-backups:
+    name: pipeline-backups
+    external: false
+  pipeline-logs:
+    name: pipeline-logs
+    external: false
+
+networks:
+  mojo-pipeline-network:
+    external: true
+

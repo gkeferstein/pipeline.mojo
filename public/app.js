@@ -7,7 +7,8 @@ const STAGE_NAMES = {
     2: 'Meeting vereinbart',
     3: 'Follow Up',
     4: 'Kaufentscheidung',
-    5: 'Kauf'
+    5: 'Kauf',
+    6: 'Absage'
 };
 
 // Konversionsraten pro Stufe
@@ -16,7 +17,8 @@ const CONVERSION_RATES = {
     2: 0.10,  // Meeting vereinbart: 10%
     3: 0.20,  // Follow Up: 20%
     4: 0.50,  // Kaufentscheidung: 50%
-    5: 1.00   // Kauf: 100%
+    5: 1.00,  // Kauf: 100%
+    6: 0.00   // Absage: 0%
 };
 
 // Basis-Produktpreis
@@ -42,10 +44,15 @@ async function loadCustomers() {
 // Rendere Kunden in den entsprechenden Spalten
 function renderCustomers(customers) {
     // Leere alle Spalten
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
         const container = document.getElementById(`stage-${i}`);
-        container.innerHTML = '';
-        document.getElementById(`count-${i}`).textContent = '0';
+        if (container) {
+            container.innerHTML = '';
+        }
+        const countElement = document.getElementById(`count-${i}`);
+        if (countElement) {
+            countElement.textContent = '0';
+        }
     }
     
     // Gruppiere Kunden nach Stufe
@@ -54,18 +61,19 @@ function renderCustomers(customers) {
         2: [],
         3: [],
         4: [],
-        5: []
+        5: [],
+        6: []
     };
     
     customers.forEach(customer => {
         const stage = customer.current_stage;
-        if (stage >= 1 && stage <= 5) {
+        if (stage >= 1 && stage <= 6) {
             customersByStage[stage].push(customer);
         }
     });
     
     // Rendere Kunden in den Spalten
-    for (let stage = 1; stage <= 5; stage++) {
+    for (let stage = 1; stage <= 6; stage++) {
         const container = document.getElementById(`stage-${stage}`);
         const countElement = document.getElementById(`count-${stage}`);
         const stageCustomers = customersByStage[stage];
@@ -90,9 +98,13 @@ function calculateExpectedValue(stage, customerCount) {
 
 // Aktualisiere erwartete Werte für alle Stufen
 function updateExpectedValues(customersByStage) {
-    for (let stage = 1; stage <= 5; stage++) {
+    let totalExpectedValue = 0;
+    
+    for (let stage = 1; stage <= 6; stage++) {
         const customerCount = customersByStage[stage].length;
         const expectedValue = calculateExpectedValue(stage, customerCount);
+        totalExpectedValue += expectedValue;
+        
         const valueElement = document.getElementById(`expected-value-${stage}`);
         
         if (valueElement) {
@@ -103,9 +115,22 @@ function updateExpectedValues(customersByStage) {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             }).format(expectedValue);
-            
+
             valueElement.textContent = `Erwarteter Wert: ${formattedValue}`;
         }
+    }
+    
+    // Aktualisiere Gesamterwarteten Wert im Header
+    const totalValueElement = document.getElementById('total-expected-value');
+    if (totalValueElement) {
+        const formattedTotal = new Intl.NumberFormat('de-DE', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(totalExpectedValue);
+        
+        totalValueElement.textContent = `Gesamterwarteter Wert: ${formattedTotal}`;
     }
 }
 
