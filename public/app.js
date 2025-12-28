@@ -16,7 +16,7 @@ const CONVERSION_RATES = {
     1: 0.01,  // Lead: 1%
     2: 0.10,  // Meeting vereinbart: 10%
     3: 0.20,  // Follow Up: 20%
-    4: 0.50,  // Kaufentscheidung: 50%
+    4: 0.75,  // Kaufentscheidung: 75% (= 3000€ pro Kunde)
     5: 1.00,  // Kauf: 100%
     6: 0.00   // Absage: 0%
 };
@@ -116,7 +116,9 @@ function updateExpectedValues(customersByStage) {
                 maximumFractionDigits: 0
             }).format(expectedValue);
 
-            valueElement.textContent = `Erwarteter Wert: ${formattedValue}`;
+            // Stage 5 (Kauf) zeigt "Realisierter Wert", alle anderen "Erwarteter Wert"
+            const label = stage === 5 ? 'Realisierter Wert' : 'Erwarteter Wert';
+            valueElement.textContent = `${label}: ${formattedValue}`;
         }
     }
     
