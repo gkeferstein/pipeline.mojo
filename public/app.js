@@ -234,7 +234,7 @@ async function loadCustomerDetails(customerId) {
             document.getElementById('modal-customer-name').textContent = customerName;
             
             // Kunden-Info anzeigen
-            document.getElementById('modal-customer-info').innerHTML = `
+            let infoHTML = `
                 <div class="info-row">
                     <span class="info-label">E-Mail:</span>
                     <span class="info-value">${customer.email}</span>
@@ -248,6 +248,111 @@ async function loadCustomerDetails(customerId) {
                     <span class="info-value">${formatDateTime(customer.created_at)}</span>
                 </div>
             `;
+            
+            // Persönliche Informationen
+            if (customer.beruf || customer.verhaeltnis || customer.ziel) {
+                infoHTML += '<div class="info-section-divider"></div>';
+                infoHTML += '<div class="info-section-title">Persönliche Informationen</div>';
+                
+                if (customer.beruf) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">Beruf:</span>
+                            <span class="info-value">${escapeHtml(customer.beruf)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.verhaeltnis) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">Verhältnis:</span>
+                            <span class="info-value">${escapeHtml(customer.verhaeltnis)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.ziel) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">Ziel:</span>
+                            <span class="info-value">${escapeHtml(customer.ziel)}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // UTM-Parameter
+            const hasUTM = customer.utmsource || customer.utmmedium || customer.utmcampaign || 
+                          customer.utmterm || customer.utmcontent;
+            if (hasUTM) {
+                infoHTML += '<div class="info-section-divider"></div>';
+                infoHTML += '<div class="info-section-title">UTM-Parameter</div>';
+                
+                if (customer.utmsource) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM Source:</span>
+                            <span class="info-value">${escapeHtml(customer.utmsource)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.utmmedium) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM Medium:</span>
+                            <span class="info-value">${escapeHtml(customer.utmmedium)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.utmcampaign) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM Campaign:</span>
+                            <span class="info-value">${escapeHtml(customer.utmcampaign)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.utmterm) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM Term:</span>
+                            <span class="info-value">${escapeHtml(customer.utmterm)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.utmcontent) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM Content:</span>
+                            <span class="info-value">${escapeHtml(customer.utmcontent)}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Tracking-IDs
+            if (customer.fbclid || customer.utmid) {
+                infoHTML += '<div class="info-section-divider"></div>';
+                infoHTML += '<div class="info-section-title">Tracking-IDs</div>';
+                
+                if (customer.fbclid) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">Facebook Click ID:</span>
+                            <span class="info-value info-value-code">${escapeHtml(customer.fbclid)}</span>
+                        </div>
+                    `;
+                }
+                if (customer.utmid) {
+                    infoHTML += `
+                        <div class="info-row">
+                            <span class="info-label">UTM ID:</span>
+                            <span class="info-value info-value-code">${escapeHtml(customer.utmid)}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('modal-customer-info').innerHTML = infoHTML;
             
             // Stage-Auswahl aktualisieren (aktuelle Stufe deaktivieren)
             const stageSelect = document.getElementById('move-stage');

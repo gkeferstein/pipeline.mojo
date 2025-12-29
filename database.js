@@ -76,6 +76,22 @@ try {
   // Spalte existiert bereits
 }
 
+// Migriere customers Tabelle (füge optionale Felder hinzu)
+const customerFields = [
+  'beruf', 'verhaeltnis', 'ziel',
+  'utmsource', 'utmmedium', 'utmcampaign', 'utmterm', 'utmcontent',
+  'fbclid', 'utmid'
+];
+
+customerFields.forEach(field => {
+  try {
+    db.exec(`ALTER TABLE customers ADD COLUMN ${field} TEXT`);
+    console.log(`✅ Customers Tabelle migriert: ${field} Spalte hinzugefügt`);
+  } catch (e) {
+    // Spalte existiert bereits
+  }
+});
+
 // Erstelle Index für bessere Performance
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);

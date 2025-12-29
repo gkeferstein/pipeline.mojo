@@ -148,7 +148,11 @@ const STAGE_NAMES = {
 app.get('/api/customers', requireAuth, (req, res) => {
   try {
     const customers = db.prepare(`
-      SELECT id, email, firstname, lastname, current_stage, created_at, updated_at
+      SELECT id, email, firstname, lastname, current_stage, 
+             beruf, verhaeltnis, ziel,
+             utmsource, utmmedium, utmcampaign, utmterm, utmcontent,
+             fbclid, utmid,
+             created_at, updated_at
       FROM customers
       ORDER BY updated_at DESC
     `).all();
@@ -167,7 +171,11 @@ app.get('/api/customers/:id', requireAuth, (req, res) => {
     
     // Kunde abrufen
     const customer = db.prepare(`
-      SELECT id, email, firstname, lastname, current_stage, created_at, updated_at
+      SELECT id, email, firstname, lastname, current_stage,
+             beruf, verhaeltnis, ziel,
+             utmsource, utmmedium, utmcampaign, utmterm, utmcontent,
+             fbclid, utmid,
+             created_at, updated_at
       FROM customers
       WHERE id = ?
     `).get(customerId);
@@ -306,7 +314,12 @@ app.post('/api/customers/:id/move', requireAuth, (req, res) => {
 // Webhook: Update-or-Create (einziger Webhook-Endpunkt)
 app.post('/webhook', requireWebhookAuth, (req, res) => {
   try {
-    const { email, firstname, lastname, stage } = req.body;
+    const { 
+      email, firstname, lastname, stage,
+      beruf, verhaeltnis, ziel,
+      utmsource, utmmedium, utmcampaign, utmterm, utmcontent,
+      fbclid, utmid
+    } = req.body;
     
     // Validierung: E-Mail ist immer erforderlich
     if (!email) {
@@ -323,6 +336,20 @@ app.post('/webhook', requireWebhookAuth, (req, res) => {
         error: 'stage muss zwischen 1 und 6 liegen' 
       });
     }
+    
+    // Optionale Felder für Webhook
+    const optionalFields = {
+      beruf, verhaeltnis, ziel,
+      utmsource, utmmedium, utmcampaign, utmterm, utmcontent,
+      fbclid, utmid
+    };
+    
+    // Helper-Funktion: Normalisiere optionales Feld (leere Strings werden zu null)
+    const normalizeField = (value) => {
+      return (value !== undefined && value !== null && String(value).trim() !== '') 
+        ? String(value).trim() 
+        : null;
+    };
     
     // Prüfe ob Kunde bereits existiert
     const existing = db.prepare('SELECT * FROM customers WHERE email = ?').get(email);
@@ -354,6 +381,16 @@ app.post('/webhook', requireWebhookAuth, (req, res) => {
           stageChanged = true;
         }
       }
+      
+      // Update optionale Felder nur wenn angegeben
+      Object.keys(optionalFields).forEach(field => {
+        const value = optionalFields[field];
+        if (value !== undefined) {
+          const normalizedValue = normalizeField(value);
+          updates.push(`${field} = ?`);
+          params.push(normalizedValue);
+        }
+      });
       
       // Nur updaten wenn es Änderungen gibt
       if (updates.length > 0) {
@@ -387,14 +424,37 @@ app.post('/webhook', requireWebhookAuth, (req, res) => {
       const targetStage = stage || 1; // Default: Stufe 1 (Lead)
       
       // Normalisiere firstname und lastname (leere Strings werden zu null)
-      const firstnameValue = (firstname && firstname.trim() !== '') ? firstname.trim() : null;
-      const lastnameValue = (lastname && lastname.trim() !== '') ? lastname.trim() : null;
+      const firstnameValue = normalizeField(firstname);
+      const lastnameValue = normalizeField(lastname);
+      
+      // Normalisiere optionale Felder
+      const berufValue = normalizeField(beruf);
+      const verhaeltnisValue = normalizeField(verhaeltnis);
+      const zielValue = normalizeField(ziel);
+      const utmsourceValue = normalizeField(utmsource);
+      const utmmediumValue = normalizeField(utmmedium);
+      const utmcampaignValue = normalizeField(utmcampaign);
+      const utmtermValue = normalizeField(utmterm);
+      const utmcontentValue = normalizeField(utmcontent);
+      const fbclidValue = normalizeField(fbclid);
+      const utmidValue = normalizeField(utmid);
       
       // Kunde erstellen
       const result = db.prepare(`
-        INSERT INTO customers (email, firstname, lastname, current_stage, created_at, updated_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `).run(email, firstnameValue, lastnameValue, targetStage);
+        INSERT INTO customers (
+          email, firstname, lastname, current_stage,
+          beruf, verhaeltnis, ziel,
+          utmsource, utmmedium, utmcampaign, utmterm, utmcontent,
+          fbclid, utmid,
+          created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `).run(
+        email, firstnameValue, lastnameValue, targetStage,
+        berufValue, verhaeltnisValue, zielValue,
+        utmsourceValue, utmmediumValue, utmcampaignValue, utmtermValue, utmcontentValue,
+        fbclidValue, utmidValue
+      );
       
       const customerId = result.lastInsertRowid;
       
