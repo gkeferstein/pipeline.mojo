@@ -91,6 +91,65 @@
         </div>
     </div>
     
+    <!-- Kunden-Detail Modal -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-customer-name">Kunde</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-customer-info" id="modal-customer-info"></div>
+                
+                <!-- Tabs -->
+                <div class="modal-tabs">
+                    <button class="modal-tab active" data-tab="history">📋 Verlauf</button>
+                    <button class="modal-tab" data-tab="notes">📝 Notizen</button>
+                    <button class="modal-tab" data-tab="move">🔄 Verschieben</button>
+                </div>
+                
+                <!-- Tab: History -->
+                <div class="modal-tab-content active" id="tab-history">
+                    <div class="history-list" id="history-list">
+                        <p class="loading">Lade Verlauf...</p>
+                    </div>
+                </div>
+                
+                <!-- Tab: Notes -->
+                <div class="modal-tab-content" id="tab-notes">
+                    <div class="notes-form">
+                        <textarea id="note-input" placeholder="Neue Notiz eingeben..." rows="3"></textarea>
+                        <button class="btn-primary" id="save-note">Notiz speichern</button>
+                    </div>
+                    <div class="notes-list" id="notes-list">
+                        <p class="loading">Lade Notizen...</p>
+                    </div>
+                </div>
+                
+                <!-- Tab: Move -->
+                <div class="modal-tab-content" id="tab-move">
+                    <div class="move-form">
+                        <label for="move-stage">Ziel-Stufe:</label>
+                        <select id="move-stage">
+                            <option value="">Stufe auswählen...</option>
+                            <option value="1">1 - Lead</option>
+                            <option value="2">2 - Meeting vereinbart</option>
+                            <option value="3">3 - Follow Up</option>
+                            <option value="4">4 - Kaufentscheidung</option>
+                            <option value="5">5 - Kauf</option>
+                            <option value="6">6 - Absage</option>
+                        </select>
+                        
+                        <label for="move-reason">Begründung (Pflichtfeld):</label>
+                        <textarea id="move-reason" placeholder="Grund für die Verschiebung eingeben..." rows="3"></textarea>
+                        
+                        <button class="btn-primary" id="move-customer">Karte verschieben</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="app.js"></script>
 </body>
 </html>

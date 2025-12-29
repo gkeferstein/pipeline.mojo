@@ -43,16 +43,45 @@ db.exec(`
     customer_id INTEGER NOT NULL,
     from_stage INTEGER,
     to_stage INTEGER NOT NULL,
+    reason TEXT,
+    source TEXT DEFAULT 'webhook',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id)
   )
 `);
+
+// Erstelle notes Tabelle für manuelle Notizen
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+  )
+`);
+
+// Migriere bestehende movements Tabelle (füge neue Spalten hinzu wenn sie fehlen)
+try {
+  db.exec(`ALTER TABLE movements ADD COLUMN reason TEXT`);
+  console.log('✅ Movements Tabelle migriert: reason Spalte hinzugefügt');
+} catch (e) {
+  // Spalte existiert bereits
+}
+
+try {
+  db.exec(`ALTER TABLE movements ADD COLUMN source TEXT DEFAULT 'webhook'`);
+  console.log('✅ Movements Tabelle migriert: source Spalte hinzugefügt');
+} catch (e) {
+  // Spalte existiert bereits
+}
 
 // Erstelle Index für bessere Performance
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
   CREATE INDEX IF NOT EXISTS idx_customers_stage ON customers(current_stage);
   CREATE INDEX IF NOT EXISTS idx_movements_customer ON movements(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_notes_customer ON notes(customer_id);
 `);
 
 console.log('✅ Datenbank initialisiert:', dbPath);

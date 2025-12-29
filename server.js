@@ -134,6 +134,16 @@ app.post('/logout', (req, res) => {
   });
 });
 
+// Stage-Namen Mapping
+const STAGE_NAMES = {
+  1: 'Lead',
+  2: 'Meeting vereinbart',
+  3: 'Follow Up',
+  4: 'Kaufentscheidung',
+  5: 'Kauf',
+  6: 'Absage'
+};
+
 // API: Alle Kunden abrufen (geschützt)
 app.get('/api/customers', requireAuth, (req, res) => {
   try {
@@ -146,6 +156,149 @@ app.get('/api/customers', requireAuth, (req, res) => {
     res.json({ success: true, customers });
   } catch (error) {
     console.error('Fehler beim Abrufen der Kunden:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: Einzelnen Kunden mit History und Notizen abrufen (geschützt)
+app.get('/api/customers/:id', requireAuth, (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    // Kunde abrufen
+    const customer = db.prepare(`
+      SELECT id, email, firstname, lastname, current_stage, created_at, updated_at
+      FROM customers
+      WHERE id = ?
+    `).get(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Kunde nicht gefunden' });
+    }
+    
+    // Bewegungs-History abrufen
+    const movements = db.prepare(`
+      SELECT id, from_stage, to_stage, reason, source, created_at
+      FROM movements
+      WHERE customer_id = ?
+      ORDER BY created_at DESC
+    `).all(customerId);
+    
+    // Notizen abrufen
+    const notes = db.prepare(`
+      SELECT id, content, created_at
+      FROM notes
+      WHERE customer_id = ?
+      ORDER BY created_at DESC
+    `).all(customerId);
+    
+    res.json({ 
+      success: true, 
+      customer,
+      movements: movements.map(m => ({
+        ...m,
+        from_stage_name: m.from_stage ? STAGE_NAMES[m.from_stage] : null,
+        to_stage_name: STAGE_NAMES[m.to_stage]
+      })),
+      notes
+    });
+  } catch (error) {
+    console.error('Fehler beim Abrufen des Kunden:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: Notiz zu Kunden hinzufügen (geschützt)
+app.post('/api/customers/:id/notes', requireAuth, (req, res) => {
+  try {
+    const customerId = req.params.id;
+    const { content } = req.body;
+    
+    // Validierung
+    if (!content || content.trim() === '') {
+      return res.status(400).json({ success: false, error: 'Notiz-Inhalt ist erforderlich' });
+    }
+    
+    // Prüfe ob Kunde existiert
+    const customer = db.prepare('SELECT id FROM customers WHERE id = ?').get(customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Kunde nicht gefunden' });
+    }
+    
+    // Notiz speichern
+    const result = db.prepare(`
+      INSERT INTO notes (customer_id, content, created_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+    `).run(customerId, content.trim());
+    
+    // Erstellte Notiz zurückgeben
+    const note = db.prepare('SELECT * FROM notes WHERE id = ?').get(result.lastInsertRowid);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Notiz erfolgreich hinzugefügt',
+      note
+    });
+  } catch (error) {
+    console.error('Fehler beim Hinzufügen der Notiz:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: Kunden in andere Stufe verschieben (mit Pflicht-Begründung, geschützt)
+app.post('/api/customers/:id/move', requireAuth, (req, res) => {
+  try {
+    const customerId = req.params.id;
+    const { to_stage, reason } = req.body;
+    
+    // Validierung
+    if (!to_stage || to_stage < 1 || to_stage > 6) {
+      return res.status(400).json({ success: false, error: 'Gültige Ziel-Stufe (1-6) ist erforderlich' });
+    }
+    
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ success: false, error: 'Begründung ist erforderlich' });
+    }
+    
+    // Prüfe ob Kunde existiert
+    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, error: 'Kunde nicht gefunden' });
+    }
+    
+    const oldStage = customer.current_stage;
+    
+    // Prüfe ob Bewegung nötig ist
+    if (oldStage === to_stage) {
+      return res.status(400).json({ success: false, error: 'Kunde ist bereits in dieser Stufe' });
+    }
+    
+    // Kunde verschieben
+    db.prepare(`
+      UPDATE customers 
+      SET current_stage = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(to_stage, customerId);
+    
+    // Bewegung loggen mit Begründung und source='manual'
+    db.prepare(`
+      INSERT INTO movements (customer_id, from_stage, to_stage, reason, source, created_at)
+      VALUES (?, ?, ?, ?, 'manual', CURRENT_TIMESTAMP)
+    `).run(customerId, oldStage, to_stage, reason.trim());
+    
+    // Aktualisierten Kunden abrufen
+    const updatedCustomer = db.prepare('SELECT * FROM customers WHERE id = ?').get(customerId);
+    
+    res.json({ 
+      success: true, 
+      message: `Kunde erfolgreich von "${STAGE_NAMES[oldStage]}" nach "${STAGE_NAMES[to_stage]}" verschoben`,
+      customer: updatedCustomer,
+      from_stage: oldStage,
+      to_stage: to_stage,
+      reason: reason.trim()
+    });
+  } catch (error) {
+    console.error('Fehler beim Verschieben des Kunden:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
