@@ -1,29 +1,25 @@
-# Projekt-spezifische Cursor Rules
+# pipeline.mojo - Cursor Rules
 
-## Projekt-Kontext
-Dieses Projekt läuft auf dem MOJO Dev-Server.
+> **Globale Standards:** `/root/projects/CODING_STANDARDS.md`
 
-## Port-Konfiguration
-- Frontend-Port: Siehe `docs/PORT.md` (OBLIGATORISCH!)
-- Backend-Port: Siehe `docs/PORT.md` (falls vorhanden)
-- **WICHTIG:** Port MUSS in `docs/PORT.md` dokumentiert sein!
+## Projekt-Info
 
-## Code-Standards
-- Verwende TypeScript/JavaScript ES6+
-- Folge den bestehenden Code-Konventionen
-- Dokumentiere wichtige Funktionen
+- **Typ:** CI/CD Pipeline Service
+- **Domain:** pipeline.mojo-institut.de
+- **Stack:** TypeScript + Node.js
+
+## Standards
+
+1. **Multitenancy:** `@mojo/tenant` Middleware (falls API)
+2. **Auth:** Clerk JWT (falls geschützt)
+3. **CI/CD:** GitHub Actions
 
 ## Deployment
-- Projekt wird automatisch über CI/CD deployed
-- Port wird automatisch in nginx registriert
-- **WICHTIG:** Deploy-Server wird über GitHub Secrets konfiguriert (`DEPLOY_SERVER`)
-- **NIEMALS** Server-IPs hardcoden!
-- Siehe `.github/workflows/ci-cd.yml`
 
-## GitHub Secrets (ERFORDERLICH)
-- `DEPLOY_SERVER` - Server-IP oder Hostname (MUSS gesetzt sein!)
-- `SSH_PRIVATE_KEY` - SSH-Key für Server-Zugriff (MUSS gesetzt sein!)
+- GitHub Secrets: `DEPLOY_SERVER`, `SSH_PRIVATE_KEY`
+- Docker + Traefik
 
+## Cursor Behavior
 
-
-
+- Code direkt in Dateien schreiben
+- Keine Bestätigung vor Änderungen

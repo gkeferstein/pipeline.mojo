@@ -144,6 +144,91 @@ const STAGE_NAMES = {
   6: 'Absage'
 };
 
+// Konversionsraten pro Stufe (muss mit Frontend übereinstimmen)
+const CONVERSION_RATES = {
+  1: 0.01,  // Lead: 1%
+  2: 0.10,  // Meeting vereinbart: 10%
+  3: 0.20,  // Follow Up: 20%
+  4: 0.50,  // Kaufentscheidung: 50% (= 2000€ pro Kunde)
+  5: 0.75,  // Kauf: 75% (= 3000€ pro Kunde)
+  6: 0.00   // Absage: 0%
+};
+
+// Basis-Produktpreis (muss mit Frontend übereinstimmen)
+const BASE_PRICE = 4000;
+
+// Berechnet Werte aus Kundenanzahlen pro Stufe
+function calculateValuesFromCounts(stageCounts) {
+  let expectedValue = 0;
+  let realizedValue = 0;
+  
+  // Erwarteter Wert: Summe für Stufen 1-4
+  for (let stage = 1; stage <= 4; stage++) {
+    const count = stageCounts[`stage_${stage}_count`] || 0;
+    const rate = CONVERSION_RATES[stage] || 0;
+    expectedValue += BASE_PRICE * rate * count;
+  }
+  
+  // Realisierter Wert: Stufe 5 (Kauf)
+  const stage5Count = stageCounts.stage_5_count || 0;
+  const rate5 = CONVERSION_RATES[5] || 0;
+  realizedValue = BASE_PRICE * rate5 * stage5Count;
+  
+  const totalValue = expectedValue + realizedValue;
+  
+  return {
+    expectedValue,
+    realizedValue,
+    totalValue
+  };
+}
+
+// Erstellt einen täglichen Snapshot der aktuellen Kundenanzahl pro Stufe
+function createDailySnapshot() {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Prüfe ob Snapshot für heute bereits existiert
+    const existing = db.prepare('SELECT id FROM daily_snapshots WHERE date = ?').get(today);
+    if (existing) {
+      console.log(`✅ Täglicher Snapshot für ${today} existiert bereits`);
+      return;
+    }
+    
+    // Zähle Kundenanzahl pro Stufe
+    const stageCounts = {};
+    for (let stage = 1; stage <= 6; stage++) {
+      const count = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM customers 
+        WHERE current_stage = ?
+      `).get(stage);
+      stageCounts[`stage_${stage}_count`] = count.count;
+    }
+    
+    // Erstelle Snapshot
+    db.prepare(`
+      INSERT INTO daily_snapshots (
+        date, stage_1_count, stage_2_count, stage_3_count, 
+        stage_4_count, stage_5_count, stage_6_count, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(
+      today,
+      stageCounts.stage_1_count,
+      stageCounts.stage_2_count,
+      stageCounts.stage_3_count,
+      stageCounts.stage_4_count,
+      stageCounts.stage_5_count,
+      stageCounts.stage_6_count
+    );
+    
+    console.log(`✅ Täglicher Snapshot für ${today} erstellt`);
+  } catch (error) {
+    console.error('Fehler beim Erstellen des täglichen Snapshots:', error);
+  }
+}
+
 // API: Alle Kunden abrufen (geschützt)
 app.get('/api/customers', requireAuth, (req, res) => {
   try {
@@ -249,6 +334,69 @@ app.post('/api/customers/:id/notes', requireAuth, (req, res) => {
     });
   } catch (error) {
     console.error('Fehler beim Hinzufügen der Notiz:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: Gesamtwert und Fortschritt abrufen (geschützt)
+app.get('/api/stats/total-value', requireAuth, (req, res) => {
+  try {
+    // Zähle aktuelle Kundenanzahl pro Stufe
+    const currentStageCounts = {};
+    for (let stage = 1; stage <= 6; stage++) {
+      const count = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM customers 
+        WHERE current_stage = ?
+      `).get(stage);
+      currentStageCounts[`stage_${stage}_count`] = count.count;
+    }
+    
+    // Berechne aktuelle Werte
+    const currentValues = calculateValuesFromCounts(currentStageCounts);
+    
+    // Lade Snapshot von vor 7 Tagen
+    const sevenDaysAgo = db.prepare(`
+      SELECT * FROM daily_snapshots 
+      WHERE date = DATE('now', '-7 days')
+      ORDER BY date DESC
+      LIMIT 1
+    `).get();
+    
+    let sevenDaysAgoValues = null;
+    let sevenDaysAgoDate = null;
+    
+    if (sevenDaysAgo) {
+      sevenDaysAgoValues = calculateValuesFromCounts(sevenDaysAgo);
+      sevenDaysAgoDate = sevenDaysAgo.date;
+    }
+    
+    // Berechne Fortschritt
+    let progressNominal = null;
+    let progressPercentage = null;
+    
+    if (sevenDaysAgoValues && sevenDaysAgoValues.totalValue > 0) {
+      progressNominal = currentValues.totalValue - sevenDaysAgoValues.totalValue;
+      progressPercentage = ((progressNominal / sevenDaysAgoValues.totalValue) * 100);
+    } else if (sevenDaysAgoValues && sevenDaysAgoValues.totalValue === 0 && currentValues.totalValue > 0) {
+      // Spezialfall: Vor 7 Tagen war Wert 0, jetzt > 0
+      progressNominal = currentValues.totalValue;
+      progressPercentage = Infinity; // Unendlich, da Division durch 0
+    }
+    
+    res.json({
+      success: true,
+      current_total_value: currentValues.totalValue,
+      current_expected_value: currentValues.expectedValue,
+      current_realized_value: currentValues.realizedValue,
+      seven_days_ago_total_value: sevenDaysAgoValues ? sevenDaysAgoValues.totalValue : null,
+      seven_days_ago_date: sevenDaysAgoDate,
+      progress_nominal: progressNominal,
+      progress_percentage: progressPercentage,
+      has_historical_data: sevenDaysAgoValues !== null
+    });
+  } catch (error) {
+    console.error('Fehler beim Abrufen der Gesamtwert-Statistiken:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -505,6 +653,9 @@ app.get('/health', (req, res) => {
 app.get('/', requireAuth, (req, res) => {
   res.sendFile(join(__dirname, 'public', 'index.html'));
 });
+
+// Server-Start: Erstelle täglichen Snapshot falls noch nicht vorhanden
+createDailySnapshot();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 pipeline.mojo läuft auf Port ${PORT}`);

@@ -10,7 +10,6 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
       - PORT=46006
       - DATABASE_PATH=/app/data/pipeline.db
     volumes:

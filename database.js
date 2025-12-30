@@ -61,6 +61,21 @@ db.exec(`
   )
 `);
 
+// Erstelle daily_snapshots Tabelle für tägliche Kundenanzahl-Snapshots
+db.exec(`
+  CREATE TABLE IF NOT EXISTS daily_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE UNIQUE NOT NULL,
+    stage_1_count INTEGER NOT NULL DEFAULT 0,
+    stage_2_count INTEGER NOT NULL DEFAULT 0,
+    stage_3_count INTEGER NOT NULL DEFAULT 0,
+    stage_4_count INTEGER NOT NULL DEFAULT 0,
+    stage_5_count INTEGER NOT NULL DEFAULT 0,
+    stage_6_count INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Migriere bestehende movements Tabelle (füge neue Spalten hinzu wenn sie fehlen)
 try {
   db.exec(`ALTER TABLE movements ADD COLUMN reason TEXT`);
@@ -98,6 +113,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_customers_stage ON customers(current_stage);
   CREATE INDEX IF NOT EXISTS idx_movements_customer ON movements(customer_id);
   CREATE INDEX IF NOT EXISTS idx_notes_customer ON notes(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_daily_snapshots_date ON daily_snapshots(date);
 `);
 
 console.log('✅ Datenbank initialisiert:', dbPath);

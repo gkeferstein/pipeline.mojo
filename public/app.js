@@ -16,13 +16,122 @@ const CONVERSION_RATES = {
     1: 0.01,  // Lead: 1%
     2: 0.10,  // Meeting vereinbart: 10%
     3: 0.20,  // Follow Up: 20%
-    4: 0.75,  // Kaufentscheidung: 75% (= 3000€ pro Kunde)
-    5: 1.00,  // Kauf: 100%
+    4: 0.50,  // Kaufentscheidung: 50% (= 2000€ pro Kunde)
+    5: 0.75,  // Kauf: 75% (= 3000€ pro Kunde)
     6: 0.00   // Absage: 0%
 };
 
 // Basis-Produktpreis
 const BASE_PRICE = 4000;
+
+// Speichere vorherige Stufen der Kunden für Änderungserkennung
+let previousCustomerStages = new Map();
+
+// ======== SOUND FUNKTIONEN ========
+
+// Erstelle Audio Context (einmalig)
+let audioContext = null;
+function getAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Ka-ching Sound (für Kauf - Stufe 5)
+function playKaChingSound() {
+    const ctx = getAudioContext();
+    const duration = 0.3;
+    const sampleRate = ctx.sampleRate;
+    const numSamples = Math.floor(duration * sampleRate);
+    const buffer = ctx.createBuffer(1, numSamples, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Erstelle einen "Ka-ching" ähnlichen Sound mit zwei Tönen
+    for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        // Erster Ton (höher)
+        const freq1 = 800 + (t * 200);
+        // Zweiter Ton (tiefer)
+        const freq2 = 400 + (t * 100);
+        // Kombiniere beide Töne mit abklingender Amplitude
+        const envelope = Math.exp(-t * 8);
+        data[i] = (Math.sin(2 * Math.PI * freq1 * t) * 0.3 + 
+                   Math.sin(2 * Math.PI * freq2 * t) * 0.2) * envelope;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start();
+}
+
+// Failure Sound (für Absage - Stufe 6)
+function playFailureSound() {
+    const ctx = getAudioContext();
+    const duration = 0.4;
+    const sampleRate = ctx.sampleRate;
+    const numSamples = Math.floor(duration * sampleRate);
+    const buffer = ctx.createBuffer(1, numSamples, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Erstelle einen "Failure" ähnlichen Sound (absteigender Ton)
+    for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        // Absteigende Frequenz
+        const freq = 400 - (t * 300);
+        // Envelope mit schnellem Abfall
+        const envelope = Math.exp(-t * 6);
+        data[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.3;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start();
+}
+
+// Fortschritt Sound (für Stufen 1-4)
+function playProgressSound() {
+    const ctx = getAudioContext();
+    const duration = 0.15;
+    const sampleRate = ctx.sampleRate;
+    const numSamples = Math.floor(duration * sampleRate);
+    const buffer = ctx.createBuffer(1, numSamples, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Erstelle einen unauffälligen, positiven Fortschritt-Sound
+    for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        // Leicht ansteigende Frequenz
+        const freq = 600 + (t * 100);
+        // Sanftes Envelope
+        const envelope = Math.exp(-t * 10);
+        data[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.15;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start();
+}
+
+// Spiele Sound basierend auf Stufenänderung
+function playSoundForStageChange(fromStage, toStage) {
+    // Nur Sounds abspielen wenn es eine echte Änderung gibt
+    if (fromStage === toStage) return;
+    
+    if (toStage === 5) {
+        // Kauf - Ka-ching Sound
+        playKaChingSound();
+    } else if (toStage === 6) {
+        // Absage - Failure Sound
+        playFailureSound();
+    } else if (toStage >= 1 && toStage <= 4 && fromStage !== null) {
+        // Fortschritt in Stufen 1-4 - unauffälliger Sound
+        playProgressSound();
+    }
+}
 
 // Lade Kunden von der API
 async function loadCustomers() {
@@ -43,6 +152,29 @@ async function loadCustomers() {
 
 // Rendere Kunden in den entsprechenden Spalten
 function renderCustomers(customers) {
+    // Erkenne Stufenänderungen und spiele Sounds ab
+    customers.forEach(customer => {
+        const customerId = customer.id;
+        const currentStage = customer.current_stage;
+        const previousStage = previousCustomerStages.get(customerId);
+        
+        // Wenn sich die Stufe geändert hat, spiele Sound ab
+        if (previousStage !== undefined && previousStage !== currentStage) {
+            playSoundForStageChange(previousStage, currentStage);
+        }
+        
+        // Aktualisiere gespeicherte Stufe
+        previousCustomerStages.set(customerId, currentStage);
+    });
+    
+    // Entferne Kunden, die nicht mehr in der Liste sind
+    const currentCustomerIds = new Set(customers.map(c => c.id));
+    for (const [customerId] of previousCustomerStages) {
+        if (!currentCustomerIds.has(customerId)) {
+            previousCustomerStages.delete(customerId);
+        }
+    }
+    
     // Leere alle Spalten
     for (let i = 1; i <= 6; i++) {
         const container = document.getElementById(`stage-${i}`);
@@ -126,7 +258,7 @@ function updateExpectedValues(customersByStage) {
         }
     }
     
-    // Aktualisiere Gesamterwarteten Wert im Header
+    // Aktualisiere Gesamterwarteten Wert im Header (Legacy - wird durch loadTotalValueStats() ersetzt)
     const totalValueElement = document.getElementById('total-expected-value');
     if (totalValueElement) {
         const formattedTotal = new Intl.NumberFormat('de-DE', {
@@ -137,6 +269,101 @@ function updateExpectedValues(customersByStage) {
         }).format(totalExpectedValue);
         
         totalValueElement.textContent = `Gesamterwarteter Wert: ${formattedTotal}`;
+    }
+    
+    // Lade Gesamtwert-Statistiken (inkl. Fortschritt)
+    loadTotalValueStats();
+}
+
+// Lade Gesamtwert-Statistiken mit Fortschritt
+async function loadTotalValueStats() {
+    try {
+        const response = await fetch(`${API_BASE}/stats/total-value`);
+        const data = await response.json();
+        
+        if (data.success) {
+            updateTotalValueHeader(data);
+        } else {
+            console.error('Fehler beim Laden der Gesamtwert-Statistiken:', data.error);
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Gesamtwert-Statistiken:', error);
+    }
+}
+
+// Aktualisiere Header mit Gesamtwert und Fortschritt
+function updateTotalValueHeader(data) {
+    const formatter = new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    });
+    
+    // Gesamtwert anzeigen
+    const totalValueElement = document.getElementById('total-value');
+    if (totalValueElement) {
+        totalValueElement.textContent = `Gesamtwert: ${formatter.format(data.current_total_value)}`;
+    }
+    
+    // Fortschritt anzeigen
+    const progressInfoElement = document.getElementById('progress-info');
+    const progressBarElement = document.getElementById('progress-bar');
+    const progressBarContainer = document.getElementById('progress-bar-container');
+    
+    if (data.has_historical_data && data.progress_nominal !== null) {
+        // Historische Daten verfügbar
+        const progressNominalFormatted = formatter.format(data.progress_nominal);
+        const progressPercentage = data.progress_percentage;
+        
+        // Prozentualer Fortschritt formatieren
+        let progressPercentageText;
+        if (progressPercentage === Infinity) {
+            progressPercentageText = '+∞%';
+        } else if (isNaN(progressPercentage)) {
+            progressPercentageText = 'N/A';
+        } else {
+            progressPercentageText = `${progressPercentage >= 0 ? '+' : ''}${progressPercentage.toFixed(1)}%`;
+        }
+        
+        // Fortschritt-Info anzeigen
+        if (progressInfoElement) {
+            progressInfoElement.innerHTML = `
+                <span class="progress-nominal">${progressNominalFormatted}</span>
+                <span class="progress-percentage">${progressPercentageText}</span>
+                <span class="progress-period">(letzte 7 Tage)</span>
+            `;
+            progressInfoElement.className = `progress-info ${progressPercentage >= 0 ? 'positive' : 'negative'}`;
+        }
+        
+        // Progress-Bar anzeigen
+        if (progressBarElement && progressBarContainer) {
+            // Berechne Progress-Bar Breite basierend auf prozentualem Fortschritt
+            // Skaliere auf ±100% für Visualisierung (max. 100% Breite)
+            let barWidthPercent;
+            if (progressPercentage === Infinity) {
+                barWidthPercent = 100; // Unendlich = volle Breite
+            } else if (isNaN(progressPercentage)) {
+                barWidthPercent = 0;
+            } else {
+                // Skaliere: -100% = 0%, 0% = 50%, +100% = 100%
+                barWidthPercent = Math.max(0, Math.min(100, 50 + (progressPercentage / 2)));
+            }
+            
+            progressBarElement.style.width = `${barWidthPercent}%`;
+            progressBarElement.className = `progress-bar ${progressPercentage >= 0 ? 'positive' : 'negative'}`;
+            progressBarContainer.style.display = 'block';
+        }
+    } else {
+        // Keine historischen Daten verfügbar
+        if (progressInfoElement) {
+            progressInfoElement.textContent = 'Keine historischen Daten verfügbar';
+            progressInfoElement.className = 'progress-info no-data';
+        }
+        
+        if (progressBarContainer) {
+            progressBarContainer.style.display = 'none';
+        }
     }
 }
 
