@@ -1,25 +1,47 @@
 # pipeline.mojo - Cursor Rules
 
-> **Globale Standards:** `/root/projects/CODING_STANDARDS.md`
+## ⚠️ PFLICHT: Platform Standards
 
-## Projekt-Info
+Dieses Projekt MUSS sich an die Standards in `platform.mojo` halten:
 
-- **Typ:** CI/CD Pipeline Service
-- **Domain:** pipeline.mojo-institut.de
-- **Stack:** TypeScript + Node.js
+- **Ökosystem:** /root/projects/platform.mojo/docs/MOJO_ECOSYSTEM.md
+- **Coding Standards:** /root/projects/platform.mojo/docs/CODING_STANDARDS.md
+- **Staging Konvention:** /root/projects/platform.mojo/docs/STAGING_SERVER_CONVENTION.md
+- **Lokale Entwicklung:** /root/projects/platform.mojo/docs/LOCAL_DEVELOPMENT.md
+- **Brand Guidelines:** /root/projects/platform.mojo/docs/brand/
 
-## Standards
+## URLs
 
-1. **Multitenancy:** `@mojo/tenant` Middleware (falls API)
-2. **Auth:** Clerk JWT (falls geschützt)
-3. **CI/CD:** GitHub Actions
+- **Staging:** https://pipeline.staging.mojo-institut.de
+- **Production:** https://pipeline.mojo-institut.de
 
-## Deployment
+## Code-Prinzipien
 
-- GitHub Secrets: `DEPLOY_SERVER`, `SSH_PRIVATE_KEY`
-- Docker + Traefik
+- TypeScript ES6+ mit striktem Typing
+- DRY - Keine Code-Duplikation
+- Einfachheit vor Komplexität
+- Health Check Endpoint ist PFLICHT (`/health`)
 
-## Cursor Behavior
+## Design System
 
-- Code direkt in Dateien schreiben
-- Keine Bestätigung vor Änderungen
+- `@gkeferstein/design` Package verwenden
+- MOJO-Terminologie beachten (siehe MOJO_GLOSSARY.md)
+- Voice & Tone Guidelines befolgen
+
+## CI/CD
+
+- Push zu `main` → Staging Deployment
+- Release Tag `v*.*.*` → Production Deployment
+- Feature Branches → CI ohne Deployment (ci-pr.yml)
+
+## GitHub Secrets (PFLICHT!)
+
+- `STAGING_SERVER` - Staging Server
+- `STAGING_SSH_KEY` - SSH Key für Staging
+- `PRODUCTION_SERVER` - Production Server
+- `PRODUCTION_SSH_KEY` - SSH Key für Production
+- `GHCR_TOKEN` - GitHub Container Registry
+
+## Referenzen
+
+Repository: https://github.com/gkeferstein/platform.mojo
